@@ -1,5 +1,4 @@
-influxdb
-schedule
-requests
-#pprint
-#dotenv
+schedule==1.2.1
+influxdb-client==1.40.0
+requests==2.31.0
+icecream==2.1.3
