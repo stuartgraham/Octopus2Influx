@@ -1,34 +1,48 @@
-import http.client
 import json
 import time
 from datetime import datetime, timedelta
 import os
 import requests
 from requests.auth import HTTPBasicAuth 
-from influxdb import InfluxDBClient
+from icecream import ic
+from influxdb_client import InfluxDBClient, Point
+from influxdb_client.client.write_api import WriteOptions
 import schedule
 from pprint import pprint
 
-# .ENV FILE FOR TESTING
-# if os.path.exists('.env'):
-#     from dotenv import load_dotenv
-#     load_dotenv()
-
 # GLOBALS
+INFLUX_VERSION = int(os.environ.get("INFLUX_VERSION", 2))
 LIVE_CONN = bool(os.environ['LIVE_CONN'])
 INFLUX_HOST = os.environ['INFLUX_HOST']
 INFLUX_HOST_PORT = int(os.environ['INFLUX_HOST_PORT'])
 INFLUX_DATABASE = os.environ['INFLUX_DATABASE']
+INFLUX_BUCKET = os.environ.get("INFLUX_BUCKET", "")
+INFLUX_TOKEN = os.environ.get("INFLUX_TOKEN", "")
+INFLUX_ORG = os.environ.get("INFLUX_ORG", "-")
 APIKEY = os.environ['APIKEY']
 ELECMPAN = os.environ['ELECMPAN']
 ELECSERIAL = os.environ['ELECSERIAL']
 GASMPAN = os.environ['GASMPAN']
 GASSERIAL = os.environ['GASSERIAL']
 RUNMINS =  int(os.environ['RUNMINS'])
+LOGGING = bool(os.environ.get("LOGGING", False))
 
 JSON_OUTPUT = 'output.json'
 
-INFLUX_CLIENT = InfluxDBClient(host=INFLUX_HOST, port=INFLUX_HOST_PORT, database=INFLUX_DATABASE)
+# Logging
+if not LOGGING:
+    ic.disable()
+
+# Set up batch write options
+BATCH_WRITE_OPTIONS = WriteOptions(batch_size=500, flush_interval=10_000, jitter_interval=2_000, retry_interval=5_000)
+
+# Instantiate Influx Client
+INFLUX_CLIENT = InfluxDBClient(
+    url=f"http://{INFLUX_HOST}:{INFLUX_HOST_PORT}", org=INFLUX_ORG, token=INFLUX_TOKEN
+    )
+INFLUX_WRITE_API = INFLUX_CLIENT.write_api(write_options=BATCH_WRITE_OPTIONS)
+
+JSON_OUTPUT = "output.json"
 
 def construct_url(*args):
     if args[0] == 'electricty':
@@ -53,8 +67,16 @@ def get_saved_data(*args):
     return working_data
 
 def write_to_influx(data_payload):
-    INFLUX_CLIENT.write_points(data_payload)
-    pass    
+    response = INFLUX_WRITE_API.write(INFLUX_BUCKET, INFLUX_ORG, data_payload)
+    success = response is None  # In InfluxDB 2.x, a successful write returns None
+    ic(success)
+
+    if success:
+        data_points = len(data_payload)
+        ic(data_points)
+        print(f"SUCCESS: {data_points} data points written to InfluxDB")
+    else:
+        print(f"ERROR: Error writing to InfluxDB: {response}")
 
 def sort_json(working_data, energy_type):
     if energy_type == 'electricty':
