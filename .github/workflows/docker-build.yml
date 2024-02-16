@@ -1,14 +1,12 @@
 name: Docker build
-on:  
-  push:    
+on:
+  push:
     branches:
       - main
-  schedule:
-    - cron: '0 23 * * 0'
-jobs:   
-  build:    
-    runs-on: ubuntu-latest    
-    env:      
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
       DOCKER_REGISTRY: ghcr.io    
       DOCKER_IMAGE: stuartgraham/octopus2influx      
       DOCKER_USERNAME: ${{ github.actor }}
@@ -16,22 +14,36 @@ jobs:
       #linux/amd64, linux/arm64, linux/riscv64, linux/arm/v7, linux/arm/v6
       DOCKER_TARGET_PLATFORM: linux/amd64
       DOCKER_ARCH: amd64
-    steps:    
-    - name: Checkout the code       
-      uses: actions/checkout@v2
+
+    steps:
+    - name: Checkout the code
+      uses: actions/checkout@v4
+
     - name: Set up QEMU
-      uses: docker/setup-qemu-action@v1
+      uses: docker/setup-qemu-action@v3
+
     - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v1  
-    - name: Docker Login        
-      run: |        
+      uses: docker/setup-buildx-action@v3
+
+    - name: Docker Login
+      run: |
         echo "${DOCKER_PASSWORD}" | docker login ${DOCKER_REGISTRY} \
-        --username "${DOCKER_USERNAME}" --password-stdin          
-    - name: Run Buildx (push image)      
-      run: |        
+        --username "${DOCKER_USERNAME}" --password-stdin
+
+    - name: Container build for amd64
+      run: |
         docker buildx build \
-        --platform ${DOCKER_TARGET_PLATFORM} \
+        --platform linux/amd64 \
         --tag ${DOCKER_REGISTRY}/${DOCKER_IMAGE}:${GITHUB_RUN_NUMBER} \
         --tag ${DOCKER_REGISTRY}/${DOCKER_IMAGE}:latest  \
+        --file ./Dockerfile \
+        --output type=image,push=true .
+
+    - name: Container build for arm64
+      run: |
+        docker buildx build \
+        --platform linux/arm64 \
+        --tag ${DOCKER_REGISTRY}/${DOCKER_IMAGE}-arm64:${GITHUB_RUN_NUMBER} \
+        --tag ${DOCKER_REGISTRY}/${DOCKER_IMAGE}-arm64:latest  \
         --file ./Dockerfile \
         --output type=image,push=true .
