@@ -33,6 +33,10 @@ JSON_OUTPUT = 'output.json'
 if not LOGGING:
     ic.disable()
 
+# Creates a bucket for backward compat
+if INFLUX_VERSION == 1:
+    INFLUX_BUCKET = f"{INFLUX_DATABASE}/autogen"
+
 # Set up batch write options
 BATCH_WRITE_OPTIONS = WriteOptions(batch_size=500, flush_interval=10_000, jitter_interval=2_000, retry_interval=5_000)
 
