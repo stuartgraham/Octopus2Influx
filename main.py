@@ -80,8 +80,6 @@ def sort_json(working_data, energy_type):
         unit_type = 'm3'
     
     for result in working_data['results']:
-        print(result['consumption'])
-        print(result['interval_end'])
         base_dict = {'measurement' : energy_type, 'tags' : {'name': energy_type}}
         base_dict.update({'time': result['interval_end']})
         fields_data = {unit_type : float(result['consumption'])}
