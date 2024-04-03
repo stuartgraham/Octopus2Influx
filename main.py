@@ -1,6 +1,5 @@
 import json
 import time
-from datetime import datetime, timedelta
 import os
 import requests
 from requests.auth import HTTPBasicAuth 
