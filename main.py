@@ -14,7 +14,7 @@ import schedule
 INFLUX_VERSION = int(os.environ.get("INFLUX_VERSION", 2))
 LIVE_CONN = bool(os.environ['LIVE_CONN'])
 INFLUX_HOST = os.environ['INFLUX_HOST']
-INFLUX_HOST_PORT = int(os.environ['INFLUX_HOST_PORT'])
+INFLUX_HOST_PORT = int(os.environ.get("INFLUX_HOST_PORT", 8086))
 INFLUX_BUCKET = os.environ.get("INFLUX_BUCKET", "")
 INFLUX_TOKEN = os.environ.get("INFLUX_TOKEN", "")
 INFLUX_ORG = os.environ.get("INFLUX_ORG", "-")
