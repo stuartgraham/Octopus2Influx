@@ -13,7 +13,7 @@ import schedule
 # GLOBALS
 INFLUX_VERSION = int(os.environ.get("INFLUX_VERSION", 2))
 LIVE_CONN = bool(os.environ['LIVE_CONN'])
-INFLUX_HOST = os.environ['INFLUX_HOST']
+INFLUX_HOST = os.environ.get("INFLUX_HOST", "")
 INFLUX_HOST_PORT = int(os.environ.get("INFLUX_HOST_PORT", 8086))
 INFLUX_BUCKET = os.environ.get("INFLUX_BUCKET", "")
 INFLUX_TOKEN = os.environ.get("INFLUX_TOKEN", "")
@@ -23,7 +23,7 @@ ELECMPAN = os.environ['ELECMPAN']
 ELECSERIAL = os.environ['ELECSERIAL']
 GASMPAN = os.environ['GASMPAN']
 GASSERIAL = os.environ['GASSERIAL']
-RUNMINS =  int(os.environ['RUNMINS'])
+RUNMINS =  int(os.environ.get('RUNMINS', 60))
 LOGGING = bool(os.environ.get("LOGGING", False))
 
 # Logging
