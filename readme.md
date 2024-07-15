@@ -5,6 +5,7 @@ Pulls data from Octopus Energy API and sends to Influx per developer guide https
 ### Environment Variables
 | Settings | Description | Inputs |
 | :----: | --- | --- |
+| `CRON_MODE` | Allows the service to be run in a single pass cron mode rather than long lived | `False` |
 | `LIVE_CONN` | Enables live lookups on website | `True` |
 | `INFLUX_HOST` | InfluxDB host | `influx.test.local` |
 | `INFLUX_HOST_PORT` | InfluxDB port  | `8086` |
