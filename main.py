@@ -1,6 +1,7 @@
 import json
 import time
 import os
+import sys
 import requests
 from requests.auth import HTTPBasicAuth 
 from icecream import ic
@@ -103,15 +104,25 @@ def do_it(*args):
 
 def main():
     ''' Main entry point of the app '''
-    do_it()
+    # Cron mode runs once and signals an exit code
+    if CRON_MODE:
+        try:
+            print("STARTJOB: Starting job...")
+            do_it()
+            print("COMPLTEDJOB: Job completed successfully")
+            sys.exit(0)
+        except Exception as e:
+            print(f"EXCEPTION: Job failed with exception: {e}")
+            sys.exit(1)
 
-    if not CRON_MODE:
+    # Else operate as long running
+    else:
+        do_it()
         schedule.every(RUNMINS).minutes.do(do_it)
 
         while True:
             schedule.run_pending()
             time.sleep(1)
-
 
 if __name__ == '__main__':
     ''' This is executed when run from the command line '''
