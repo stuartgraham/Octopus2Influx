@@ -11,6 +11,7 @@ from urllib3 import Retry
 import schedule
 
 # GLOBALS
+CRON_MODE = bool(os.environ.get('CORN_MODE', False))
 INFLUX_VERSION = int(os.environ.get("INFLUX_VERSION", 2))
 LIVE_CONN = bool(os.environ['LIVE_CONN'])
 INFLUX_HOST = os.environ.get("INFLUX_HOST", "")
@@ -103,11 +104,14 @@ def do_it(*args):
 def main():
     ''' Main entry point of the app '''
     do_it()
-    schedule.every(RUNMINS).minutes.do(do_it)
 
-    while True:
-        schedule.run_pending()
-        time.sleep(1)
+    if not CRON_MODE:
+        schedule.every(RUNMINS).minutes.do(do_it)
+
+        while True:
+            schedule.run_pending()
+            time.sleep(1)
+
 
 if __name__ == '__main__':
     ''' This is executed when run from the command line '''
