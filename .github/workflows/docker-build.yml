@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DOCKER_REGISTRY: ghcr.io    
-      DOCKER_IMAGE: stuartgraham/octopus2influx      
+      DOCKER_IMAGE: stuartgraham/octopus2influx     
       DOCKER_USERNAME: ${{ github.actor }}
       DOCKER_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
       #linux/amd64, linux/arm64, linux/riscv64, linux/arm/v7, linux/arm/v6
@@ -16,34 +16,73 @@ jobs:
       DOCKER_ARCH: amd64
 
     steps:
-    - name: Checkout the code
-      uses: actions/checkout@v4
-
-    - name: Set up QEMU
-      uses: docker/setup-qemu-action@v3
-
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-
-    - name: Docker Login
-      run: |
-        echo "${DOCKER_PASSWORD}" | docker login ${DOCKER_REGISTRY} \
-        --username "${DOCKER_USERNAME}" --password-stdin
-
-    - name: Container build for amd64
-      run: |
-        docker buildx build \
-        --platform linux/amd64 \
-        --tag ${DOCKER_REGISTRY}/${DOCKER_IMAGE}:${GITHUB_RUN_NUMBER} \
-        --tag ${DOCKER_REGISTRY}/${DOCKER_IMAGE}:latest  \
-        --file ./Dockerfile \
-        --output type=image,push=true .
-
-    - name: Container build for arm64
-      run: |
-        docker buildx build \
-        --platform linux/arm64 \
-        --tag ${DOCKER_REGISTRY}/${DOCKER_IMAGE}-arm64:${GITHUB_RUN_NUMBER} \
-        --tag ${DOCKER_REGISTRY}/${DOCKER_IMAGE}-arm64:latest  \
-        --file ./Dockerfile \
-        --output type=image,push=true .
+      - name: Checkout the code
+        uses: actions/checkout@v4
+  
+      - name: Get latest Git tag
+        id: git_tag
+        run: |
+          # Fetch all tags to ensure we have up-to-date information
+          git fetch --tags
+          TAG=$(git describe --tags $(git rev-list --tags --max-count=1) 2>/dev/null || echo "NoTags")
+          echo "tag=$TAG" >> $GITHUB_ENV
+  
+      - name: Bump SemVer version
+        id: bump_version
+        run: |
+          if [ "${{ env.tag }}" == "NoTags" ]; then
+            NEW_TAG="v1.0.1"
+          else
+            # Extract the numerical part of the version and increment the patch number
+            VERSION_REGEX="^v([0-9]+)\.([0-9]+)\.([0-9]+)$"
+            
+            if [[ "${{ env.tag }}" =~ $VERSION_REGEX ]]; then
+              MAJOR="${BASH_REMATCH[1]}"
+              MINOR="${BASH_REMATCH[2]}"
+              PATCH="${BASH_REMATCH[3]}"
+              PATCH=$((PATCH + 1))
+              NEW_TAG="v${MAJOR}.${MINOR}.${PATCH}"
+            else
+              NEW_TAG="v1.0.1"
+            fi
+          fi
+          echo "new_tag=$NEW_TAG" >> $GITHUB_ENV
+          echo $NEW_TAG
+  
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+  
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+  
+      - name: Docker Login
+        run: |
+          echo "${DOCKER_PASSWORD}" | docker login ${DOCKER_REGISTRY} \
+          --username "${DOCKER_USERNAME}" --password-stdin
+  
+      - name: Container build for amd64
+        run: |
+          docker buildx build \
+          --platform linux/amd64 \
+          --tag ${DOCKER_REGISTRY}/${DOCKER_IMAGE}:${{ env.new_tag }} \
+          --tag ${DOCKER_REGISTRY}/${DOCKER_IMAGE}:latest \
+          --file ./Dockerfile \
+          --output type=image,push=true .
+  
+      - name: Check if tag exists in remote
+        id: check_tag
+        run: |
+          git fetch --tags
+          if git rev-parse -q --verify "refs/tags/${{ env.new_tag }}"; then
+            echo "tag_exists=true" >> $GITHUB_ENV
+          else
+            echo "tag_exists=false" >> $GITHUB_ENV
+          fi
+  
+      - name: Create and push Git tag
+        if: env.tag_exists == 'false'
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git tag ${{ env.new_tag }}
+          git push origin ${{ env.new_tag }}
